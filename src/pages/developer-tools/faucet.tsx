@@ -56,17 +56,26 @@ export default function Faucet() {
   }
 
   const getTransactions = async () => {
-    const sepolia = await fetch(`${DASHBOARD_URL}/api/faucets/sepolia/transactions`, {
-      ...REQUEST_PARAMS('GET', { Authorization: `Bearer ${token}` }),
-    })
-    const { data: sepoliaData } = await sepolia.json()
-    setTransactionsForNetwork('sepolia', sepoliaData)
+    try {
+      const sepolia = await fetch(`${DASHBOARD_URL}/api/faucets/sepolia/transactions`, {
+        ...REQUEST_PARAMS('GET', { Authorization: `Bearer ${token}` }),
+      })
+      if (sepolia.ok) {
+        const { data: sepoliaData } = await sepolia.json()
+        setTransactionsForNetwork('sepolia', sepoliaData)
+      }
 
-    const linea = await fetch(`${DASHBOARD_URL}/api/faucets/linea/transactions`, {
-      ...REQUEST_PARAMS('GET', { Authorization: `Bearer ${token}` }),
-    })
-    const { data: lineaData } = await linea.json()
-    setTransactionsForNetwork('linea', lineaData)
+      const linea = await fetch(`${DASHBOARD_URL}/api/faucets/linea/transactions`, {
+        ...REQUEST_PARAMS('GET', { Authorization: `Bearer ${token}` }),
+      })
+      if (linea.ok) {
+        const { data: lineaData } = await linea.json()
+        setTransactionsForNetwork('linea', lineaData)
+      }
+    } catch (e) {
+      // Silently fail - transaction history is not critical
+      console.error('Failed to fetch transactions:', e)
+    }
   }
 
   const handleRequest = (network: 'linea' | 'sepolia') => async () => {
@@ -80,6 +89,10 @@ export default function Faucet() {
           body: JSON.stringify({ dstAddress: address }),
         }
       )
+
+      if (!faucetRawResponse.ok) {
+        throw new Error(`Faucet request failed: ${faucetRawResponse.status} ${faucetRawResponse.statusText}`)
+      }
 
       const faucetResponse = await faucetRawResponse.json()
       const error = faucetResponse.error
